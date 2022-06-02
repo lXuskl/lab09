@@ -3,23 +3,32 @@ name: CMake
 on:
   push:
     branches: [ master ]
+    tags: -"v*1.*"
+          
   pull_request:
     branches: [ master ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  
   BUILD_TYPE: Release
-
 jobs:
   build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake -H. -B_build && cmake --build _build
+      run: cmake -H. -B_build -DCPACK_GENERATOR="TGZ" && cmake --build _build --target package &&
+           cd _build && cpack -G "DEB" &&
+           cpack -G "RPM" &&
+           mkdir ../artifacts &&
+           mv *.tar.gz ../artifacts/ &&
+           mv *.deb ../artifacts/ &&
+           mv *.rpm ../artifacts/
+           
+    - name: Publish
+      uses: actions/upload-artifact@v2
+      with:
+        name: artifact
+        path: artifacts/
